@@ -1,0 +1,9 @@
+{
+  "name": "node-app-secure",
+  "version": "1.0.0",
+  "description": "DevSecOps M2 - Secure Node App",
+  "main": "index.js",
+  "dependencies": {
+    "express": "4.19.2"
+  }
+}
