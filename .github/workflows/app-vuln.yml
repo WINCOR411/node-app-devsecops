@@ -1,0 +1,39 @@
+name: CI - node-app-vuln (Trivy Gate - SHOULD FAIL)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app-vuln/**'
+      - '.github/workflows/app-vuln.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: wincor411/node-app-vuln
+
+jobs:
+  build-scan-push:
+    name: Build → Trivy Scan → Push (blocked if CRITICAL)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} ./app-vuln/
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          ignore-unfixed: true
+
+      # Cette étape ne s'exécute jamais si Trivy détecte des CRITICAL
+      - name: Push to Docker Hub (blocked by Trivy)
+        if: success()
+        run: echo "This should never run - blocked by Trivy gate"
