@@ -1,0 +1,59 @@
+name: CI - node-app-secure (Trivy Gate)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app-secure/**'
+      - '.github/workflows/app-sec.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: wincor411/node-app-secure
+
+jobs:
+  build-scan-push:
+    name: Build → Trivy Scan → Push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+                       -t ${{ env.IMAGE_NAME }}:latest \
+                       ./app-secure/
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          ignore-unfixed: true
+
+      - name: Login to Docker Hub
+        if: success()
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push to Docker Hub
+        if: success()
+        run: |
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Update K8s manifest with new image tag
+        if: success()
+        run: |
+          sed -i "s|image: wincor411/node-app-secure:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s/deployment.yaml
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add k8s/deployment.yaml
+          git commit -m "ci: update image to ${{ github.sha }}" || echo "No changes"
+          git push
