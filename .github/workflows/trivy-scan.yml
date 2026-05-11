@@ -1,0 +1,36 @@
+name: CI/CD - Trivy Scan Python Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  trivy-scan:
+    name: trivy-scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [app-sec, app-vuln]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          if [ "${{ matrix.app }}" = "app-sec" ]; then
+            docker build -t scan-${{ matrix.app }}:test ./app-secure/
+          else
+            docker build -t scan-${{ matrix.app }}:test ./app-vuln/
+          fi
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: scan-${{ matrix.app }}:test
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          ignore-unfixed: true
