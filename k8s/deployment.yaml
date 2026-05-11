@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: node-app-secure
-          image: wincor411/node-app-secure:5593532bc7ce2b95ee676050a6900a1e72efbca5
+          image: wincor411/node-app-secure:3390fbebfa346a074310489bc613c97d187aebbd
           ports:
             - containerPort: 3000
           resources:
