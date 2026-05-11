@@ -15,10 +15,14 @@ jobs:
   build-scan-push:
     name: Build → Trivy Scan → Push
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
         run: |
